@@ -1,0 +1,16 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default;
+}
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-sidebar: #EEF2ED;
+  --color-sidebar-active: #2D3A2D;
+  --color-accent-green: #2D3A2D;
+  --color-border-subtle: #E5E7EB;
+}
+
+body {
+  font-family: var(--font-sans);
+}

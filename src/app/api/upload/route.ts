@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { ingestDocument } from "@/lib/rag";
 
 const ALLOWED_EXTENSIONS = [".txt", ".md", ".pdf"];
@@ -22,6 +23,10 @@ function stripHtml(html: string): string {
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const contentType = req.headers.get("content-type") ?? "";
 
     let text = "";
@@ -99,7 +104,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await ingestDocument(text, { source });
+    const result = await ingestDocument(text, { source }, user.id);
     return NextResponse.json({ ...result, source });
   } catch (err) {
     console.error("Upload error:", err);

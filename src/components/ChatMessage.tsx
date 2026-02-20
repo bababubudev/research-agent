@@ -1,5 +1,6 @@
 "use client";
 
+import React, { Children, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import CitationBadge from "./CitationBadge";
@@ -11,21 +12,46 @@ interface ChatMessageProps {
   message: UIMessage;
 }
 
-/** Replace [1], [2] etc. in text with citation badge components. */
-function renderContentWithCitations(text: string) {
-  const parts = text.split(/(\[\d+\])/g);
-  return parts.map((part, i) => {
-    const match = part.match(/^\[(\d+)\]$/);
-    if (match) {
-      return <CitationBadge key={i} number={parseInt(match[1], 10)} />;
-    }
-    return (
-      <ReactMarkdown key={i} remarkPlugins={[remarkGfm]}>
-        {part}
-      </ReactMarkdown>
-    );
+/** Replace [N] patterns in React text children with CitationBadge components. */
+function replaceCitations(children: ReactNode): ReactNode {
+  return Children.map(children, (child) => {
+    if (typeof child !== "string") return child;
+    const parts = child.split(/(\[\d+\])/g);
+    if (parts.length === 1) return child;
+    return parts
+      .filter(Boolean)
+      .map((part, i) => {
+        const m = part.match(/^\[(\d+)\]$/);
+        return m ? (
+          <CitationBadge key={i} number={parseInt(m[1], 10)} />
+        ) : (
+          <React.Fragment key={i}>{part}</React.Fragment>
+        );
+      });
   });
 }
+
+/** ReactMarkdown component overrides that inject citation badges into text. */
+const markdownComponents = {
+  p: ({ children }: { children?: ReactNode }) => (
+    <p>{replaceCitations(children)}</p>
+  ),
+  li: ({ children }: { children?: ReactNode }) => (
+    <li>{replaceCitations(children)}</li>
+  ),
+  strong: ({ children }: { children?: ReactNode }) => (
+    <strong>{replaceCitations(children)}</strong>
+  ),
+  em: ({ children }: { children?: ReactNode }) => (
+    <em>{replaceCitations(children)}</em>
+  ),
+  td: ({ children }: { children?: ReactNode }) => (
+    <td>{replaceCitations(children)}</td>
+  ),
+  pre: ({ children }: { children?: ReactNode }) => (
+    <pre className="overflow-x-auto">{children}</pre>
+  ),
+};
 
 export default function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
@@ -45,7 +71,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       )}
 
       <div
-        className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+        className={`max-w-[75%] overflow-hidden rounded-2xl px-4 py-3 ${
           isUser
             ? "bg-[var(--color-accent-green)] text-white"
             : "border border-[var(--color-border-subtle)] bg-white text-gray-800"
@@ -54,8 +80,13 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         {isUser ? (
           <p className="text-sm">{textContent}</p>
         ) : (
-          <div className="prose prose-sm max-w-none prose-p:my-1 prose-li:my-0">
-            {renderContentWithCitations(textContent)}
+          <div className="prose prose-sm max-w-none break-words prose-p:my-1 prose-li:my-0 prose-pre:overflow-x-auto">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={markdownComponents}
+            >
+              {textContent}
+            </ReactMarkdown>
           </div>
         )}
       </div>

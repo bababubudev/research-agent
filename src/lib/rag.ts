@@ -1,6 +1,6 @@
 import { embed, embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { getSupabase } from "./supabase";
+import { getAdminClient } from "./supabase/admin";
 import type { MatchedDocument } from "@/types";
 
 const embeddingModel = openai.textEmbedding("text-embedding-3-small");
@@ -25,7 +25,8 @@ export function chunkText(text: string, maxChars = 1000): string[] {
 /** Embed and store document chunks in Supabase. */
 export async function ingestDocument(
   content: string,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
+  userId: string
 ) {
   const chunks = chunkText(content);
   const { embeddings } = await embedMany({
@@ -37,9 +38,10 @@ export async function ingestDocument(
     content: chunk,
     metadata: { ...metadata, chunk_index: i },
     embedding: embeddings[i],
+    user_id: userId,
   }));
 
-  const { error } = await getSupabase().from("documents").insert(rows);
+  const { error } = await getAdminClient().from("documents").insert(rows);
   if (error) throw error;
 
   return { chunksStored: rows.length };
@@ -50,18 +52,20 @@ export async function retrieveContext(
   query: string,
   matchCount = 5,
   threshold = 0.5,
-  sourceFilters?: string[]
+  sourceFilters?: string[],
+  userId?: string
 ): Promise<MatchedDocument[]> {
   const { embedding } = await embed({
     model: embeddingModel,
     value: query,
   });
 
-  const { data, error } = await getSupabase().rpc("match_documents", {
+  const { data, error } = await getAdminClient().rpc("match_documents", {
     query_embedding: embedding,
     match_threshold: threshold,
     match_count: matchCount,
     source_filters: sourceFilters?.length ? sourceFilters : null,
+    p_user_id: userId,
   });
 
   if (error) throw error;

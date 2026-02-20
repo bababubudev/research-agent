@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { createClient } from "@/lib/supabase/client";
 import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import ChatInput from "@/components/ChatInput";
@@ -11,6 +12,7 @@ import AddDocumentModal from "@/components/AddDocumentModal";
 import type { Conversation, DocumentSource } from "@/types";
 
 export default function Home() {
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const conversationIdRef = useRef<string | null>(null);
 
@@ -103,6 +105,14 @@ export default function Home() {
     loadConversations();
     loadDocumentSources();
   }, [loadConversations, loadDocumentSources]);
+
+  // Fetch current user on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email ?? null);
+    });
+  }, []);
 
   // New chat
   function handleNewChat() {
@@ -212,6 +222,7 @@ export default function Home() {
         activeConversationId={conversationId}
         documentSources={documentSources}
         selectedSources={selectedSources}
+        userEmail={userEmail}
         onNewChat={handleNewChat}
         onAddDocument={() => setShowUploadModal(true)}
         onSelectConversation={handleSelectConversation}
@@ -227,7 +238,19 @@ export default function Home() {
             Documentation Search
           </h1>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-[var(--color-accent-green)]" />
+            {userEmail && (
+              <>
+                <span className="text-sm text-gray-500">{userEmail}</span>
+                <form action="/auth/signout" method="POST">
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-100"
+                  >
+                    Sign Out
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </header>
 

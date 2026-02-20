@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
-import { getSupabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
 // GET /api/documents/sources — list document sources with chunk counts
 export async function GET() {
-  const supabase = getSupabase();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data, error } = await supabase.rpc("list_document_sources");
+  const { data, error } = await supabase.rpc("list_document_sources", {
+    p_user_id: user.id,
+  });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -26,10 +30,13 @@ export async function DELETE(req: Request) {
     );
   }
 
-  const supabase = getSupabase();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { error } = await supabase.rpc("delete_documents_by_source", {
     target_source: source,
+    p_user_id: user.id,
   });
 
   if (error) {

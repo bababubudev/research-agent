@@ -10,11 +10,14 @@ import {
 } from "@heroicons/react/24/outline";
 import type { Conversation, DocumentSource } from "@/types";
 
+import { ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
+
 interface SidebarProps {
   conversations: Conversation[];
   activeConversationId: string | null;
   documentSources: DocumentSource[];
   selectedSources: string[];
+  userEmail?: string | null;
   onNewChat: () => void;
   onAddDocument: () => void;
   onSelectConversation: (id: string) => void;
@@ -28,6 +31,7 @@ export default function Sidebar({
   activeConversationId,
   documentSources,
   selectedSources,
+  userEmail,
   onNewChat,
   onAddDocument,
   onSelectConversation,
@@ -180,6 +184,27 @@ export default function Sidebar({
           New Chat
         </button>
       </div>
+
+      {/* User info */}
+      {userEmail && (
+        <div className="mt-3 flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-green)] text-sm font-medium text-white">
+            {userEmail[0].toUpperCase()}
+          </div>
+          <span className="min-w-0 flex-1 truncate text-sm text-gray-700">
+            {userEmail}
+          </span>
+          <form action="/auth/signout" method="POST">
+            <button
+              type="submit"
+              className="shrink-0 rounded p-1 text-gray-400 transition-colors hover:text-red-500"
+              title="Sign out"
+            >
+              <ArrowRightStartOnRectangleIcon className="h-5 w-5" />
+            </button>
+          </form>
+        </div>
+      )}
     </aside>
   );
 }

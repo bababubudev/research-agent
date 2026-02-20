@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import ChatInput from "@/components/ChatInput";
@@ -15,6 +16,7 @@ export default function Home() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [documentSources, setDocumentSources] = useState<DocumentSource[]>([]);
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   // Keep ref in sync
@@ -41,7 +43,25 @@ export default function Home() {
     loadConversations();
   }, []);
 
+  const selectedSourcesRef = useRef<string[]>(selectedSources);
+  useEffect(() => {
+    selectedSourcesRef.current = selectedSources;
+  }, [selectedSources]);
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: () => {
+          const sources = selectedSourcesRef.current;
+          return sources.length > 0 ? { selectedSources: sources } : {};
+        },
+      }),
+    []
+  );
+
   const { messages, sendMessage, status, setMessages } = useChat({
+    transport,
     onFinish: handleFinish,
   });
 
@@ -143,6 +163,16 @@ export default function Home() {
     setInput(query);
   }
 
+  function handleToggleDocumentSource(source: string) {
+    setSelectedSources((prev) =>
+      prev.includes(source) ? prev.filter((s) => s !== source) : [...prev, source]
+    );
+  }
+
+  function handleRemoveSource(source: string) {
+    setSelectedSources((prev) => prev.filter((s) => s !== source));
+  }
+
   // Submit message — create conversation on first message
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -181,11 +211,13 @@ export default function Home() {
         conversations={conversations}
         activeConversationId={conversationId}
         documentSources={documentSources}
+        selectedSources={selectedSources}
         onNewChat={handleNewChat}
         onAddDocument={() => setShowUploadModal(true)}
         onSelectConversation={handleSelectConversation}
         onDeleteConversation={handleDeleteConversation}
         onDeleteDocumentSource={handleDeleteDocumentSource}
+        onToggleDocumentSource={handleToggleDocumentSource}
       />
 
       <main className="flex flex-1 flex-col">
@@ -210,6 +242,8 @@ export default function Home() {
           onChange={setInput}
           onSubmit={handleSubmit}
           isLoading={isLoading}
+          selectedSources={selectedSources}
+          onRemoveSource={handleRemoveSource}
         />
       </main>
 

@@ -49,7 +49,8 @@ export async function ingestDocument(
 export async function retrieveContext(
   query: string,
   matchCount = 5,
-  threshold = 0.5
+  threshold = 0.5,
+  sourceFilters?: string[]
 ): Promise<MatchedDocument[]> {
   const { embedding } = await embed({
     model: embeddingModel,
@@ -60,6 +61,7 @@ export async function retrieveContext(
     query_embedding: embedding,
     match_threshold: threshold,
     match_count: matchCount,
+    source_filters: sourceFilters?.length ? sourceFilters : null,
   });
 
   if (error) throw error;

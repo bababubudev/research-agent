@@ -4,7 +4,7 @@ import { retrieveContext, formatContext } from "@/lib/rag";
 import { SYSTEM_PROMPT, buildUserPrompt } from "@/lib/prompts";
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const { messages, selectedSources }: { messages: UIMessage[]; selectedSources?: string[] } = await req.json();
 
   // Extract the user's latest question from parts
   const lastUserMessage = messages.findLast((m) => m.role === "user");
@@ -17,7 +17,10 @@ export async function POST(req: Request) {
   // RAG: retrieve relevant context
   let context = "No relevant documents found.";
   try {
-    const docs = await retrieveContext(query);
+    // Use a lower threshold when sources are explicitly pinned, since the user
+    // has already expressed intent about which documents to search
+    const threshold = selectedSources?.length ? 0.0 : 0.5;
+    const docs = await retrieveContext(query, 5, threshold, selectedSources);
     context = formatContext(docs);
   } catch {
     // If Supabase isn't configured yet, continue without context

@@ -1,0 +1,45 @@
+import { NextResponse } from "next/server";
+import { getSupabase } from "@/lib/supabase";
+
+// PATCH /api/conversations/[id] — update conversation title
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const { title } = await req.json();
+  const supabase = getSupabase();
+
+  const { data, error } = await supabase
+    .from("conversations")
+    .update({ title })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data);
+}
+
+// DELETE /api/conversations/[id] — delete conversation (cascades to messages)
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const supabase = getSupabase();
+
+  const { error } = await supabase
+    .from("conversations")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

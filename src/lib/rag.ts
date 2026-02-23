@@ -22,7 +22,11 @@ export function chunkText(text: string, maxChars = 1000): string[] {
   return chunks;
 }
 
-/** Embed and store document chunks in Supabase. */
+/** Embed and store document chunks in Supabase.
+ *  If chunks for the same source already exist for this user, they are replaced.
+ *  New chunks are inserted first so a failure during embedding leaves the old
+ *  data intact. Old chunks are deleted only after a successful insert.
+ */
 export async function ingestDocument(
   content: string,
   metadata: Record<string, unknown> = {},
@@ -41,10 +45,27 @@ export async function ingestDocument(
     user_id: userId,
   }));
 
+  // Capture IDs of any existing chunks for this source before inserting new ones
+  const source = metadata.source as string | undefined;
+  let oldIds: number[] = [];
+  if (source) {
+    const { data } = await getAdminClient()
+      .from("documents")
+      .select("id")
+      .eq("user_id", userId)
+      .filter("metadata->>source", "eq", source);
+    oldIds = (data ?? []).map((r: { id: number }) => r.id);
+  }
+
   const { error } = await getAdminClient().from("documents").insert(rows);
   if (error) throw error;
 
-  return { chunksStored: rows.length };
+  // Delete the old chunks only after the new ones are safely written
+  if (oldIds.length > 0) {
+    await getAdminClient().from("documents").delete().in("id", oldIds);
+  }
+
+  return { chunksStored: rows.length, replaced: oldIds.length > 0 };
 }
 
 /** Retrieve documents similar to the query. */

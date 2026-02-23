@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   XMarkIcon,
   DocumentTextIcon,
@@ -8,6 +8,7 @@ import {
   GlobeAltIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 
 type Tab = "text" | "file" | "url";
@@ -29,6 +30,7 @@ export default function AddDocumentModal({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [existingSources, setExistingSources] = useState<string[]>([]);
 
   // Text tab state
   const [pasteTitle, setPasteTitle] = useState("");
@@ -41,6 +43,26 @@ export default function AddDocumentModal({
 
   // URL tab state
   const [url, setUrl] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    fetch("/api/documents/sources")
+      .then((r) => r.json())
+      .then((data: { source: string }[]) =>
+        setExistingSources(Array.isArray(data) ? data.map((d) => d.source) : [])
+      )
+      .catch(() => {});
+  }, [open]);
+
+  const pendingSource =
+    activeTab === "file"
+      ? (selectedFile?.name ?? "")
+      : activeTab === "text"
+        ? (pasteTitle.trim() || "Pasted text")
+        : url.trim();
+
+  const isDuplicate =
+    pendingSource.length > 0 && existingSources.includes(pendingSource);
 
   function resetForm() {
     setPasteTitle("");
@@ -89,7 +111,9 @@ export default function AddDocumentModal({
 
       setFeedback({
         type: "success",
-        message: `Ingested ${data.chunksStored} chunks from "${data.source}"`,
+        message: data.replaced
+          ? `Replaced "${data.source}" with ${data.chunksStored} updated chunks.`
+          : `Ingested ${data.chunksStored} chunks from "${data.source}".`,
       });
       onUploadSuccess?.();
       // Reset input fields after success
@@ -227,6 +251,17 @@ export default function AddDocumentModal({
               onChange={(e) => setUrl(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[var(--color-accent-green)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent-green)]"
             />
+          )}
+
+          {/* Duplicate warning */}
+          {isDuplicate && !feedback && (
+            <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <span className="font-medium">"{pendingSource}"</span> already
+                exists. Uploading will replace it.
+              </span>
+            </div>
           )}
 
           {/* Feedback */}

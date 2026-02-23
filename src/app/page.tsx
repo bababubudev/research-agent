@@ -134,10 +134,11 @@ export default function Home() {
         const data = await res.json();
         // Convert DB rows back to UIMessage shape
         const uiMessages: UIMessage[] = data.map(
-          (m: { id: string; role: "user" | "assistant"; parts: UIMessage["parts"]; created_at: string }) => ({
+          (m: { id: string; role: "user" | "assistant"; parts: UIMessage["parts"]; metadata?: unknown; created_at: string }) => ({
             id: m.id,
             role: m.role,
             parts: m.parts,
+            metadata: m.metadata ?? undefined,
             createdAt: new Date(m.created_at),
           })
         );

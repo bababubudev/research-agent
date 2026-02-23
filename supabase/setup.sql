@@ -25,6 +25,7 @@ returns table (
   similarity float
 )
 language sql stable
+SET search_path = public, extensions
 as $$
   select
     id,

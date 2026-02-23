@@ -30,3 +30,13 @@ export interface DocumentSource {
   source: string;
   chunk_count: number;
 }
+
+export interface CitationDetail {
+  source: string;
+  content: string;
+}
+
+export interface ChatMessageMetadata {
+  sources?: Record<string, string>; // "1" -> "project-docs.pdf", "2" -> "api-guide.md"
+  citations?: Record<string, CitationDetail>; // "1" -> { source, content }
+}

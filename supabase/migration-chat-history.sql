@@ -48,6 +48,7 @@ create or replace trigger trg_update_conversation_timestamp
 create or replace function list_document_sources()
 returns table (source text, chunk_count bigint)
 language sql stable
+set search_path = public, extensions
 as $$
   select
     coalesce(metadata->>'source', 'Unknown') as source,

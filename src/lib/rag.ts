@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { getAdminClient } from "./supabase/admin";
 import type { MatchedDocument } from "@/types";
 
-const embeddingModel = openai.textEmbedding("text-embedding-3-small");
+const embeddingModel = openai.embedding("text-embedding-3-small");
 
 /** Split text into chunks of roughly `maxChars`, breaking at paragraph boundaries. */
 export function chunkText(text: string, maxChars = 1000): string[] {

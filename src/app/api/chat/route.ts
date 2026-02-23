@@ -22,12 +22,19 @@ export async function POST(req: Request) {
 
   // RAG: retrieve relevant context
   let context = "No relevant documents found.";
+  let sourcesMap: Record<string, string> = {};
+  let citationsMap: Record<string, { source: string; content: string }> = {};
   try {
     // Use a lower threshold when sources are explicitly pinned, since the user
     // has already expressed intent about which documents to search
     const threshold = selectedSources?.length ? 0.0 : 0.5;
     const docs = await retrieveContext(query, 5, threshold, selectedSources, user.id);
     context = formatContext(docs);
+    docs.forEach((doc, i) => {
+      const source = doc.metadata?.source ?? doc.metadata?.title ?? `Document ${doc.id}`;
+      sourcesMap[String(i + 1)] = source;
+      citationsMap[String(i + 1)] = { source, content: doc.content };
+    });
   } catch {
     // If Supabase isn't configured yet, continue without context
     context = "Database not configured. Answering without document context.";
@@ -49,5 +56,7 @@ export async function POST(req: Request) {
     messages: modelMessages,
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    messageMetadata: () => ({ sources: sourcesMap, citations: citationsMap }),
+  });
 }

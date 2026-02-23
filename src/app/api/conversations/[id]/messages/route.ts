@@ -37,11 +37,12 @@ export async function POST(
 
   // Map UIMessages to DB rows
   const rows = messages.map(
-    (m: { id: string; role: string; parts: unknown }) => ({
+    (m: { id: string; role: string; parts: unknown; metadata?: unknown }) => ({
       id: m.id,
       conversation_id: id,
       role: m.role,
       parts: m.parts,
+      metadata: m.metadata ?? null,
     })
   );
 

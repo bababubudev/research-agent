@@ -10,6 +10,7 @@ interface ChatInputProps {
   isLoading: boolean;
   selectedSources: string[];
   onRemoveSource: (source: string) => void;
+  borderless?: boolean;
 }
 
 export default function ChatInput({
@@ -19,12 +20,16 @@ export default function ChatInput({
   isLoading,
   selectedSources,
   onRemoveSource,
+  borderless = false,
 }: ChatInputProps) {
   return (
-    <form onSubmit={onSubmit} className="border-t border-[var(--color-border-subtle)] bg-white px-6 py-4">
-      <div className="mx-auto max-w-3xl">
+    <form
+      onSubmit={onSubmit}
+      className={borderless ? "px-0 py-0" : "border-t border-[var(--color-border-subtle)] bg-white px-6 py-4"}
+    >
+      <div className={borderless ? "w-full" : "mx-auto max-w-3xl"}>
         {/* Selected source chips */}
-        {selectedSources.length > 0 ? (
+        {selectedSources.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1.5">
             {selectedSources.map((source) => (
               <span
@@ -42,8 +47,6 @@ export default function ChatInput({
               </span>
             ))}
           </div>
-        ) : (
-          <p className="mb-2 text-xs text-gray-400">Searching all documents</p>
         )}
 
         <div className="flex items-center gap-3">

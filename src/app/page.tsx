@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import ChatInput from "@/components/ChatInput";
+import WelcomeScreen from "@/components/WelcomeScreen";
 import AddDocumentModal from "@/components/AddDocumentModal";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import type { Conversation, DocumentSource } from "@/types";
@@ -90,7 +91,7 @@ export default function Home() {
     []
   );
 
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const { messages, sendMessage, status, error, setMessages } = useChat({
     transport,
     onFinish: handleFinish,
   });
@@ -198,8 +199,11 @@ export default function Home() {
     loadDocumentSources();
   }
 
-  function handleSuggestionClick(query: string) {
+  function handleSuggestionClick(query: string, source?: string) {
     setInput(query);
+    if (source && !selectedSources.includes(source)) {
+      setSelectedSources((prev) => [...prev, source]);
+    }
   }
 
   function handleToggleDocumentSource(source: string) {
@@ -285,20 +289,41 @@ export default function Home() {
           </div>
         </header>
 
-        <ChatArea
-          messages={messages}
-          isLoading={isLoading}
-          onSuggestionClick={handleSuggestionClick}
-        />
-
-        <ChatInput
-          input={input}
-          onChange={setInput}
-          onSubmit={handleSubmit}
-          isLoading={isLoading}
-          selectedSources={selectedSources}
-          onRemoveSource={handleRemoveSource}
-        />
+        {messages.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-8 overflow-y-auto px-8 pb-8 pt-4">
+            <WelcomeScreen
+              documentSources={documentSources}
+              onSuggestionClick={handleSuggestionClick}
+            />
+            <div className="w-full max-w-2xl">
+              <ChatInput
+                input={input}
+                onChange={setInput}
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+                selectedSources={selectedSources}
+                onRemoveSource={handleRemoveSource}
+                borderless
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            <ChatArea
+              messages={messages}
+              isLoading={isLoading}
+              error={error}
+            />
+            <ChatInput
+              input={input}
+              onChange={setInput}
+              onSubmit={handleSubmit}
+              isLoading={isLoading}
+              selectedSources={selectedSources}
+              onRemoveSource={handleRemoveSource}
+            />
+          </>
+        )}
       </main>
 
       <AddDocumentModal

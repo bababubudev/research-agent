@@ -27,6 +27,9 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const apiKey = req.headers.get("x-openai-key");
+    if (!apiKey) return NextResponse.json({ error: "OpenAI API key required. Please add your key in settings." }, { status: 400 });
+
     const contentType = req.headers.get("content-type") ?? "";
 
     let text = "";
@@ -104,7 +107,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await ingestDocument(text, { source }, user.id);
+    const result = await ingestDocument(text, { source }, user.id, apiKey);
     return NextResponse.json({ ...result, source });
   } catch (err) {
     console.error("Upload error:", err);

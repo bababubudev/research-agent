@@ -5,6 +5,7 @@ import {
   ChatBubbleLeftRightIcon,
   DocumentPlusIcon,
   DocumentTextIcon,
+  KeyIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
@@ -18,8 +19,10 @@ interface SidebarProps {
   documentSources: DocumentSource[];
   selectedSources: string[];
   userEmail?: string | null;
+  hasApiKey: boolean;
   onNewChat: () => void;
   onAddDocument: () => void;
+  onOpenApiKeyModal: () => void;
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
   onDeleteDocumentSource: (source: string) => void;
@@ -32,8 +35,10 @@ export default function Sidebar({
   documentSources,
   selectedSources,
   userEmail,
+  hasApiKey,
   onNewChat,
   onAddDocument,
+  onOpenApiKeyModal,
   onSelectConversation,
   onDeleteConversation,
   onDeleteDocumentSource,
@@ -182,6 +187,24 @@ export default function Sidebar({
         >
           <PlusIcon className="h-5 w-5" />
           New Chat
+        </button>
+        <button
+          onClick={onOpenApiKeyModal}
+          className={`flex w-full items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors ${
+            hasApiKey
+              ? "border-gray-200 text-gray-500 hover:bg-gray-50"
+              : "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+          }`}
+        >
+          <KeyIcon className="h-4 w-4 shrink-0" />
+          <span className="flex-1 text-left">
+            {hasApiKey ? "OpenAI Key: set" : "Set OpenAI API Key"}
+          </span>
+          {!hasApiKey && (
+            <span className="shrink-0 rounded-full bg-amber-200 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+              Required
+            </span>
+          )}
         </button>
       </div>
 

@@ -17,12 +17,14 @@ interface AddDocumentModalProps {
   open: boolean;
   onClose: () => void;
   onUploadSuccess?: () => void;
+  apiKey?: string;
 }
 
 export default function AddDocumentModal({
   open,
   onClose,
   onUploadSuccess,
+  apiKey,
 }: AddDocumentModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>("text");
   const [loading, setLoading] = useState(false);
@@ -104,7 +106,11 @@ export default function AddDocumentModal({
         formData.append("url", url);
       }
 
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: apiKey ? { "x-openai-key": apiKey } : {},
+        body: formData,
+      });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error || "Upload failed.");

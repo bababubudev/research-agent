@@ -1,9 +1,7 @@
 import { embed, embedMany } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { getAdminClient } from "./supabase/admin";
 import type { MatchedDocument } from "@/types";
-
-const embeddingModel = openai.embedding("text-embedding-3-small");
 
 /** Split text into chunks of roughly `maxChars`, breaking at paragraph boundaries. */
 export function chunkText(text: string, maxChars = 1000): string[] {
@@ -30,8 +28,11 @@ export function chunkText(text: string, maxChars = 1000): string[] {
 export async function ingestDocument(
   content: string,
   metadata: Record<string, unknown> = {},
-  userId: string
+  userId: string,
+  apiKey: string
 ) {
+  const openai = createOpenAI({ apiKey });
+  const embeddingModel = openai.embedding("text-embedding-3-small");
   const chunks = chunkText(content);
   const { embeddings } = await embedMany({
     model: embeddingModel,
@@ -74,8 +75,11 @@ export async function retrieveContext(
   matchCount = 5,
   threshold = 0.5,
   sourceFilters?: string[],
-  userId?: string
+  userId?: string,
+  apiKey?: string
 ): Promise<MatchedDocument[]> {
+  const openai = createOpenAI({ apiKey });
+  const embeddingModel = openai.embedding("text-embedding-3-small");
   const { embedding } = await embed({
     model: embeddingModel,
     value: query,

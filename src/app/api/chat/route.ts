@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { streamText, UIMessage, convertToModelMessages } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { createClient } from "@/lib/supabase/server";
 import { retrieveContext, formatContext } from "@/lib/rag";
 import { SYSTEM_PROMPT, buildUserPrompt } from "@/lib/prompts";
@@ -9,6 +9,9 @@ export async function POST(req: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const apiKey = req.headers.get("x-openai-key");
+  if (!apiKey) return NextResponse.json({ error: "OpenAI API key required. Please add your key in settings." }, { status: 400 });
 
   const { messages, selectedSources }: { messages: UIMessage[]; selectedSources?: string[] } = await req.json();
 
@@ -28,7 +31,7 @@ export async function POST(req: Request) {
     // Use a lower threshold when sources are explicitly pinned, since the user
     // has already expressed intent about which documents to search
     const threshold = selectedSources?.length ? 0.0 : 0.5;
-    const docs = await retrieveContext(query, 5, threshold, selectedSources, user.id);
+    const docs = await retrieveContext(query, 5, threshold, selectedSources, user.id, apiKey);
     context = formatContext(docs);
     docs.forEach((doc, i) => {
       const source = doc.metadata?.source ?? doc.metadata?.title ?? `Document ${doc.id}`;
@@ -50,6 +53,7 @@ export async function POST(req: Request) {
     };
   }
 
+  const openai = createOpenAI({ apiKey });
   const result = streamText({
     model: openai("gpt-4o"),
     system: SYSTEM_PROMPT,

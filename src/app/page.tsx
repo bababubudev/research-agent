@@ -9,7 +9,10 @@ import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import ChatInput from "@/components/ChatInput";
 import AddDocumentModal from "@/components/AddDocumentModal";
+import ApiKeyModal from "@/components/ApiKeyModal";
 import type { Conversation, DocumentSource } from "@/types";
+
+const STORAGE_KEY = "openai_api_key";
 
 export default function Home() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -20,6 +23,27 @@ export default function Home() {
   const [documentSources, setDocumentSources] = useState<DocumentSource[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const apiKeyRef = useRef("");
+
+  // Load API key from localStorage on mount; prompt if missing
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY) ?? "";
+    setApiKey(stored);
+    apiKeyRef.current = stored;
+    if (!stored) setShowApiKeyModal(true);
+  }, []);
+
+  function handleSaveApiKey(key: string) {
+    if (key) {
+      localStorage.setItem(STORAGE_KEY, key);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    setApiKey(key);
+    apiKeyRef.current = key;
+  }
 
   // Keep ref in sync
   useEffect(() => {
@@ -54,6 +78,10 @@ export default function Home() {
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
+        headers: (): Record<string, string> => {
+          const key = apiKeyRef.current;
+          return key ? { "x-openai-key": key } : {};
+        },
         body: () => {
           const sources = selectedSourcesRef.current;
           return sources.length > 0 ? { selectedSources: sources } : {};
@@ -224,8 +252,10 @@ export default function Home() {
         documentSources={documentSources}
         selectedSources={selectedSources}
         userEmail={userEmail}
+        hasApiKey={!!apiKey}
         onNewChat={handleNewChat}
         onAddDocument={() => setShowUploadModal(true)}
+        onOpenApiKeyModal={() => setShowApiKeyModal(true)}
         onSelectConversation={handleSelectConversation}
         onDeleteConversation={handleDeleteConversation}
         onDeleteDocumentSource={handleDeleteDocumentSource}
@@ -275,7 +305,16 @@ export default function Home() {
         open={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         onUploadSuccess={loadDocumentSources}
+        apiKey={apiKey}
       />
+
+      {showApiKeyModal && (
+        <ApiKeyModal
+          currentKey={apiKey}
+          onSave={handleSaveApiKey}
+          onClose={() => setShowApiKeyModal(false)}
+        />
+      )}
     </div>
   );
 }
